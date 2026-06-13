@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlowProxy Login</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root {
+      --bg: #eff5f3;
+      --panel: #ffffff;
+      --text: #1a2527;
+      --muted: #5c6b6e;
+      --primary: #0b6f79;
+      --danger: #b83a2f;
+      --shadow: 0 16px 48px rgba(10, 38, 45, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% -8%, #d9eeea 0%, transparent 38%),
+        radial-gradient(circle at 105% 16%, #f3ddd1 0%, transparent 34%),
+        linear-gradient(170deg, #edf2f0 0%, #f6f9f7 100%);
+    }
+
+    .card {
+      width: min(520px, 100%);
+      border: 1px solid rgba(11, 55, 62, 0.14);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .head {
+      padding: 20px 22px;
+      color: #fff;
+      background: linear-gradient(130deg, #0e6672 0%, #0a7c73 52%, #0d7d8b 100%);
+    }
+
+    .head h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .head p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .body {
+      padding: 18px 22px 22px;
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid #cfd9d7;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .checkline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .checkline input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .hint {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .error {
+      min-height: 18px;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <header class="head">
+      <h1>FlowProxy</h1>
+      <p id="subtitle">管理端登录</p>
+    </header>
+    <section class="body">
+      <form id="loginForm">
+        <label>
+          <span id="userLabel">账号</span>
+          <input id="username" type="text" autocomplete="username" required />
+        </label>
+        <label>
+          <span id="passLabel">密码</span>
+          <input id="password" type="password" autocomplete="current-password" required />
+        </label>
+        <label class="checkline">
+          <input id="rememberMe" type="checkbox" />
+          <span id="rememberLabel">记住我（30 天）</span>
+        </label>
+        <div style="margin-top:10px">
+          <button type="submit" id="loginBtn">登录</button>
+        </div>
+      </form>
+      <p class="hint" id="resetHint"></p>
+      <div class="error" id="errorBox"></div>
+    </section>
+  </main>
+
+  <script>
+    const i18n = {
+      zh: {
+        subtitle: "管理端登录",
+        userLabel: "账号",
+        passLabel: "密码",
+        rememberLabel: "记住我（30 天）",
+        loginBtn: "登录",
+        resetHint: "忘记密码请使用命令行重置：\ngo run ./cmd/flowproxy reset-admin --username <新账号> --password <新密码>",
+        opFail: "操作失败"
+      },
+      "zh-tw": {
+        subtitle: "管理端登入",
+        userLabel: "帳號",
+        passLabel: "密碼",
+        rememberLabel: "記住我（30 天）",
+        loginBtn: "登入",
+        resetHint: "忘記密碼請使用命令列重置：\ngo run ./cmd/flowproxy reset-admin --username <新帳號> --password <新密碼>",
+        opFail: "操作失敗"
+      },
+      en: {
+        subtitle: "Admin Sign In",
+        userLabel: "Username",
+        passLabel: "Password",
+        rememberLabel: "Remember me (30 days)",
+        loginBtn: "Sign In",
+        resetHint: "Use CLI to reset credentials if lost:\ngo run ./cmd/flowproxy reset-admin --username <new-user> --password <new-password>",
+        opFail: "Operation failed"
+      }
+    };
+
+    function normalizeLang(input) {
+      const raw = String(input || "").trim().toLowerCase();
+      if (!raw) return "en";
+      if (raw === "zh" || raw === "zh-cn" || raw === "zh-hans") return "zh";
+      if (raw === "zh-tw" || raw === "zh-hk" || raw === "zh-mo" || raw === "zh-hant") return "zh-tw";
+      if (raw === "en" || raw.startsWith("en-")) return "en";
+      return "en";
+    }
+
+    const preferredLangRaw = localStorage.getItem("fp_lang");
+    const lang = preferredLangRaw ? normalizeLang(preferredLangRaw) : "en";
+
+    function t(key) {
+      return (i18n[lang] || i18n.en)[key] || key;
+    }
+
+    const el = {
+      subtitle: document.getElementById("subtitle"),
+      userLabel: document.getElementById("userLabel"),
+      passLabel: document.getElementById("passLabel"),
+      rememberLabel: document.getElementById("rememberLabel"),
+      loginBtn: document.getElementById("loginBtn"),
+      resetHint: document.getElementById("resetHint"),
+      loginForm: document.getElementById("loginForm"),
+      username: document.getElementById("username"),
+      password: document.getElementById("password"),
+      rememberMe: document.getElementById("rememberMe"),
+      errorBox: document.getElementById("errorBox")
+    };
+
+    function applyText() {
+      document.documentElement.lang = lang;
+      el.subtitle.textContent = t("subtitle");
+      el.userLabel.textContent = t("userLabel");
+      el.passLabel.textContent = t("passLabel");
+      el.rememberLabel.textContent = t("rememberLabel");
+      el.loginBtn.textContent = t("loginBtn");
+      el.resetHint.textContent = t("resetHint");
+    }
+
+    function showError(msg = "") {
+      el.errorBox.textContent = msg;
+    }
+
+    async function httpJSON(url, options = {}) {
+      const res = await fetch(url, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || t("opFail"));
+      }
+      return data;
+    }
+
+    async function checkSession() {
+      try {
+        const result = await httpJSON("/auth/session");
+        if (result && result.authenticated) {
+          window.location.replace("/");
+        }
+      } catch (_) {
+      }
+    }
+
+    el.loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showError("");
+      try {
+        await httpJSON("/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: el.username.value.trim(),
+            password: el.password.value,
+            rememberMe: !!el.rememberMe.checked
+          })
+        });
+        window.location.replace("/");
+      } catch (err) {
+        showError(err.message || t("opFail"));
+      }
+    });
+
+    applyText();
+    checkSession();
+  </script>
+</body>
+</html>

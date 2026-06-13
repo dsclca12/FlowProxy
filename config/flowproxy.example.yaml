@@ -1,0 +1,426 @@
+# FlowProxy 声明式配置示例（可完全脱离 UI 使用）
+# 使用方式：
+# 1) 复制为 ./flowproxy.yaml（或任意路径）
+# 2) 启动时设置 CONFIG_FILE=./flowproxy.yaml（start.sh 也支持 --config）
+# 3) 修改后重启服务生效
+
+# 配置格式版本，当前固定为 1。
+version: 1
+
+runtime:
+  # 管理端监听地址（UI + API）。
+  # 支持 ":9000" / "9000" / "0.0.0.0:9000"。
+  # 支持网卡绑定格式："eth0:9000" - 绑定到指定网卡。
+  # 默认监听 0.0.0.0，若仅需本机访问可改为 127.0.0.1:9000。
+  adminAddr: "0.0.0.0:9000"
+
+  # 可选：管理端 HTTPS 监听地址（留空表示关闭）。
+  # 启用后建议同时开启 adminTlsRedirectHttp，将 HTTP 管理端自动跳转到 HTTPS。
+  adminHttpsAddr: ":9443"
+
+  # 可选：管理端 HTTPS 证书文件与私钥文件。
+  # 也可用 adminTlsCertificateId 指定证书列表中的 active 证书。
+  adminTlsCertificateId: ""
+  # 若不配置且 adminTlsAutoSelfSigned=true，则自动生成内存自签证书。
+  # adminTlsCertFile: "./data/admin/tls.crt"
+  # adminTlsKeyFile: "./data/admin/tls.key"
+  adminTlsAutoSelfSigned: true
+  adminTlsRedirectHttp: true
+
+  # 管理端初始登录账号（首次启动写入 adminAuthFile）。
+  # 后续可在 Web 页面修改账号密码。
+  adminUsername: "admin"
+  adminPassword: "change-me-strong-password"
+
+  # 管理端账号数据文件（用户名/密码哈希/恢复码哈希）。
+  adminAuthFile: "./data/admin-auth.json"
+
+  # 受信代理 CIDR/IP。仅来源于这些代理时才信任 X-Forwarded-For/X-Forwarded-Proto。
+  trustedProxyCidrs:
+    - "127.0.0.1/32"
+    - "::1/128"
+
+  # 反向代理 HTTP 监听地址。
+  # 支持网卡绑定格式："eth0:80"。
+  httpAddr: ":80"
+
+  # 反向代理 HTTPS 监听地址。
+  # 支持网卡绑定格式："eth0:443"。
+  httpsAddr: ":443"
+
+  # 站点配置数据落盘文件（JSON）。
+  dataFile: "./data/sites.json"
+
+  # 系统设置数据落盘文件（JSON）。
+  settingsFile: "./data/settings.json"
+
+  # 证书配置数据落盘文件（JSON）。
+  certDataFile: "./data/certificates.json"
+
+  # 证书文件目录（含 ACME 缓存与托管证书）。
+  certDir: "./data/certs"
+
+  # 备份文件目录（ZIP）。
+  backupDir: "./data/backups"
+
+  # 访问日志落盘文件（JSON）。
+  accessLogFile: "./data/access-logs.json"
+
+  # 访问日志最多保留条数（超出后按时间从旧到新裁剪）。
+  accessLogMaxRows: 10000
+
+  # 访问日志保留时长（Go duration 格式，0s 表示不按时间裁剪）。
+  accessLogTTL: "168h"
+
+  # 访问日志刷盘间隔（Go duration 格式）。
+  accessLogFlushInterval: "2s"
+
+  # 告警 Webhook（可选，留空关闭告警发送）。
+  alertWebhookUrl: ""
+  # 连续 5xx 达到阈值时触发告警。
+  alertConsecutive5xx: 10
+  # 单请求延迟阈值（毫秒，0 表示关闭延迟告警）。
+  alertLatencyMs: 0
+  # 告警冷却时间，避免重复轰炸。
+  alertCooldown: "5m"
+
+  # Let's Encrypt 邮箱（可为空）。
+  letsEncryptEmail: "admin@example.com"
+
+  # 是否开启自动 TLS（ACME）。
+  enableAutoTLS: true
+
+  # 是否启用内置 UI 页面。
+  # false 时仅保留管理 API（/api/*）。
+  enableUI: true
+
+  # 控制数据存储后端：file / etcd。
+  storageBackend: "file"
+  # 当 storageBackend=etcd 时生效，支持多个 endpoint。
+  # storageEtcdEndpoints:
+  #   - "http://127.0.0.1:2379"
+  # etcd 键前缀。
+  storageEtcdPrefix: "/flowproxy"
+  # etcd 连接超时（Go duration）。
+  storageEtcdDialTimeout: "3s"
+
+settings:
+  # 控制台默认语言：zh / zh-tw / en
+  language: "en"
+
+  # 管理端口（用于覆盖 adminAddr 中的端口部分）。
+  webPort: 9000
+
+  webAccess:
+    # 允许访问管理端的来源 CIDR/IP，留空表示允许所有来源。
+    allowCidrs:
+      - "127.0.0.1"
+      - "10.0.0.0/24"
+
+    # 拒绝访问列表，命中后优先拒绝。
+    denyCidrs:
+      - "192.168.1.0/24"
+
+  # 站点 IP 规则来源优先级（高 -> 低）。
+  # 可选值：site, custom, country
+  # - site: 站点内手工填的 ipAccess
+  # - custom: ipRuleSets 的手工 CIDR/IP
+  # - country: ipCountryAutoUpdates 注入的 CIDR
+  # 未匹配任一来源时，仍遵循“存在 allow 列表则默认拒绝”的白名单语义。
+  ipRuleSourceOrder: ["site", "custom", "country"]
+
+  # 可复用 IP 规则模板（可被站点的 ipRuleSetId/ipRuleSetIds 引用）。
+  ipRuleSets:
+    - id: "office_cn"
+      name: "Office CN"
+      # 规则模板优先级（数值越大越优先）。
+      priority: 100
+      # 模板内部冲突策略：allow_first（默认）/ deny_first
+      conflictPolicy: "allow_first"
+      allowCidrs: []
+      denyCidrs: []
+
+  # 按国家自动联网更新 CIDR，并注入到指定 ipRuleSet。
+  # 当前 source 仅支持 ipdeny。
+  ipCountryAutoUpdates:
+    - id: "office-cn-allow"
+      enabled: true
+      ruleSetId: "office_cn"
+      # 写入到目标规则集的 allow 或 deny 列表。
+      list: "allow"
+      # ISO 3166-1 alpha-2 国家代码。
+      countries: ["CN"]
+      # 是否同时拉取 IPv6 段。
+      includeIpv6: false
+      # 更新间隔（Go duration，最小 5m）。
+      interval: "24h"
+      source: "ipdeny"
+
+  clusterSync:
+    # 是否在执行节点上同步证书资产（证书与私钥）。
+    certificateSyncEnabled: true
+    # 是否启用跨设备同步失败保护（达到阈值后代理返回 503）。
+    failCloseEnabled: true
+    # 连续失败阈值。
+    failCloseConsecutiveFailures: 10
+    # 最近一次成功同步后，超过该时长仍未恢复则触发保护。
+    failCloseStaleAfter: "5m"
+
+  backup:
+    # 是否启用定时备份。
+    enabled: true
+
+    # 定时备份间隔（Go duration 格式，最小 1m）。
+    interval: "24h"
+
+    # 最多保留最近 N 份备份（超出自动清理旧备份）。
+    keepLast: 30
+
+  alert:
+    # Webhook 地址，留空表示关闭告警推送。
+    webhookUrl: ""
+    # 连续 5xx 达到阈值触发告警。
+    consecutive5xx: 10
+    # 单请求延迟告警阈值，毫秒，0 表示关闭。
+    latencyMs: 0
+    # 告警冷却时间（Go duration）。
+    cooldown: "5m"
+
+  adminTls:
+    # 是否启用管理端 HTTPS（WebUI/API 管理面板）。
+    enabled: false
+    # 管理端 HTTPS 监听端口。
+    httpsPort: 9443
+    # 管理端 HTTP 是否自动跳转到 HTTPS。
+    redirectHttp: false
+    # 未提供 certFile/keyFile 时是否自动生成自签证书。
+    autoSelfSigned: true
+    # 从 certificates 列表中选择的证书 ID（需为 active 且具备可用私钥的证书）。
+    certificateId: ""
+    # certFile 与 keyFile 需同时配置。
+    certFile: ""
+    keyFile: ""
+
+# 站点列表。可覆盖所有反代能力（路由、负载、鉴权、限流、头部改写等）。
+# 若写成 [] 表示清空所有站点。
+sites:
+  - id: "site-main"
+    # 站点名称，仅用于管理展示。
+    name: "Main Site"
+
+    # 主域名（支持通配符，如 *.example.com）。
+    domain: "app.example.com"
+
+    # 额外域名（SNI/Host 匹配）。
+    additionalDomains:
+      - "www.app.example.com"
+
+    # 可选：独立监听端口（启用后该站点可直接在该端口接入）。
+    listenPort: 2001
+
+    # 绑定证书 ID（对应 certificates[].id）。
+    certificateId: "cert-main-selfsigned"
+
+    # 单上游（和 upstreams 二选一或并用）。
+    upstream: "http://127.0.0.1:8080"
+
+    # 多上游配置（可做加权负载）。
+    upstreams:
+      - url: "http://127.0.0.1:8080"
+        weight: 3
+      - url: "http://127.0.0.1:8081"
+        weight: 1
+
+    # 上游 TLS 高级配置（当 upstream/upstreams 为 https:// 时生效）。
+    upstreamTls:
+      insecureSkipVerify: false
+      serverName: "backend.internal.example.com"
+      # rootCAFile: "./data/ca/internal-ca.pem"
+      # rootCAPem: |
+      #   -----BEGIN CERTIFICATE-----
+      #   ...
+      #   -----END CERTIFICATE-----
+
+    # 负载策略：round_robin / weighted_round_robin / least_conn / ip_hash / random
+    loadBalanceStrategy: "weighted_round_robin"
+
+    # 路由规则（按 priority 从高到低）。
+    routes:
+      - path: "/api"
+        match: "prefix" # prefix / exact / regex
+        methods: ["GET", "POST"]
+        header: "X-Api-Version"
+        headerValue: "v2"
+        query: "stage"
+        queryValue: "canary"
+        upstream: "http://127.0.0.1:9001"
+        priority: 100
+      - path: "^/legacy/(.*)$"
+        match: "regex"
+        upstream: "http://127.0.0.1:9010"
+        rewritePattern: "^/legacy/(.*)$"
+        rewriteReplacement: "/$1"
+        priority: 50
+
+    # 流量韧性（主动健康检查 + 重试 + 熔断）。
+    resilience:
+      activeHealthCheck:
+        enabled: true
+        intervalSeconds: 10
+        timeoutSeconds: 5
+        path: "/health"
+        expectedStatus: 200
+      retry:
+        enabled: true
+        attempts: 2
+        retryOnStatuses: [502, 503, 504]
+        backoffStrategy: "exponential" # fixed / exponential
+        backoffMillis: 80
+        maxBackoffMillis: 500
+        jitterPercent: 10
+      circuitBreaker:
+        enabled: true
+        failureThreshold: 5
+        openSeconds: 30
+
+    # 上游超时/连接控制（毫秒；0 表示使用默认值）。
+    timeouts:
+      connectMillis: 1000
+      responseHeaderMillis: 5000
+      requestMillis: 10000
+      idleConnMillis: 90000
+      tlsHandshakeMillis: 2000
+      maxIdleConnsPerHost: 64
+      maxBackendConnections: 256
+
+    # 响应缓存（仅缓存可缓存的 GET/HEAD 200 响应，不缓存带 Set-Cookie/private/no-store）。
+    cache:
+      enabled: true
+      # true: 主动缓存（即使上游未显式给出可缓存头）；false: 仅缓存上游明确可缓存响应
+      proactive: true
+      ttlSeconds: 30
+      maxEntries: 512
+      maxBodyBytes: 1048576
+      # 缓存 Key 忽略查询参数（用于 token/timestamp 抖动场景）。
+      keyIgnoreQueryParams: ["token", "ts", "_"]
+
+    # 下行压缩（客户端需携带 Accept-Encoding:gzip / br）。
+    gzip:
+      enabled: true
+    brotli:
+      enabled: true
+
+    # 灰度发布（Header/Cookie 命中优先，其次按权重分流）。
+    canary:
+      enabled: true
+      header: "X-Canary"
+      headerValue: "1"
+      cookie: "canary_user"
+      cookieValue: "true"
+      weight: 10
+      upstreams:
+        - url: "http://127.0.0.1:8082"
+          weight: 1
+      loadBalanceStrategy: "round_robin"
+
+    # 自动配置常见代理头（请求：X-Real-IP/X-Forwarded-Port；响应：X-Request-ID）。
+    autoRequestHeaders: true
+    autoResponseHeaders: true
+
+    # 给请求增加/覆盖头部。
+    requestHeaders:
+      - name: "X-Forwarded-Proto"
+        value: "https"
+
+    # 给响应增加/覆盖头部。
+    responseHeaders:
+      - name: "X-Frame-Options"
+        value: "SAMEORIGIN"
+
+    # 从请求中移除指定头部。
+    removeRequestHeaders:
+      - "X-Powered-By"
+
+    # 从响应中移除指定头部。
+    removeResponseHeaders:
+      - "Server"
+
+    # 站点级限流。
+    rateLimit:
+      enabled: true
+      requestsPerMinute: 120
+      burst: 30
+      autoBlock:
+        enabled: true
+        violationThreshold: 5
+        violationWindowSeconds: 60
+        blockSeconds: 600
+
+    # 流量控制（可选）：限制站点并发请求和允许的方法。
+    trafficControl:
+      maxConcurrentRequests: 200
+      allowedMethods:
+        - "GET"
+        - "POST"
+        - "PUT"
+        - "PATCH"
+        - "DELETE"
+
+    # 站点访问控制（CIDR/IP）。
+    ipAccess:
+      allowCidrs:
+        - "0.0.0.0/0"
+      denyCidrs:
+        - "203.0.113.0/24"
+
+    # Basic Auth（密码与哈希至少配置一个；推荐使用 passwordHash）。
+    basicAuth:
+      enabled: true
+      username: "admin"
+      password: "change-me"
+      # passwordHash: "$2a$10$..."
+
+    # 安全增强（可选）。
+    security:
+      # 注入常见安全响应头（X-Frame-Options/CSP/HSTS 等）。
+      enableSecurityHeaders: true
+      # 命中正则后直接拒绝请求（403）。
+      blockUserAgentPatterns:
+        - "(?i)sqlmap"
+        - "(?i)nikto"
+
+    # 站点开关。
+    enabled: true
+
+    # 是否强制跳转 HTTPS。
+    forceHttps: true
+
+# 证书列表。若写成 [] 表示清空证书配置。
+certificates:
+  - id: "cert-main-selfsigned"
+    name: "Main Self Signed"
+    type: "self_signed" # self_signed / acme
+    domains:
+      - "app.example.com"
+      - "www.app.example.com"
+    selfSigned:
+      commonName: "app.example.com"
+      organization:
+        - "Example Inc"
+      validDays: 397
+      keyAlgorithm: "rsa" # rsa / ecdsa / ed25519
+      rsaBits: 2048
+      isCA: false
+
+  - id: "cert-api-acme"
+    name: "API ACME"
+    type: "acme"
+    domains:
+      - "api.example.com"
+    acme:
+      email: "admin@example.com"
+      provider: "letsencrypt"
+      challenge: "http-01"
+      keyType: "ecdsa"
+      renewBeforeDays: 30
+      autoIssue: true

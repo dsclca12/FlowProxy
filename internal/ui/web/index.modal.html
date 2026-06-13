@@ -1,0 +1,27 @@
+  <div id="certDownloadModal" class="modal-backdrop" hidden>
+    <section class="panel modal-card" role="dialog" aria-modal="true" aria-labelledby="certDownloadModalTitle">
+      <div class="section-head">
+        <h2 id="certDownloadModalTitle" data-i18n="certDownloadModalTitle">下载证书</h2>
+        <button type="button" class="btn-ghost" id="certDownloadCloseBtn">×</button>
+      </div>
+      <div class="section-body">
+        <p class="hint" id="certDownloadTarget"></p>
+        <label>
+          <span data-i18n="certDownloadAssetLabel">证书内容</span>
+          <select id="certDownloadAsset"></select>
+        </label>
+        <label>
+          <span data-i18n="certDownloadFormatLabel">下载格式</span>
+          <select id="certDownloadFormat"></select>
+        </label>
+        <label>
+          <span data-i18n="certDownloadPasswordLabel">密码（用于 PFX/P12/JKS）</span>
+          <input id="certDownloadPassword" type="password" data-placeholder="certDownloadPasswordPH" />
+        </label>
+        <div class="actions">
+          <button type="button" class="btn-primary" id="certDownloadConfirmBtn" data-i18n="certDownloadConfirm">开始下载</button>
+          <button type="button" class="btn-neutral" id="certDownloadCancelBtn" data-i18n="certDownloadCancel">取消</button>
+        </div>
+      </div>
+    </section>
+  </div>

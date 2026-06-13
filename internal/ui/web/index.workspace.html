@@ -1,0 +1,1084 @@
+    <section class="workspace">
+      <section class="topbar panel">
+        <div class="title-wrap">
+          <h1 data-i18n="title">FlowProxy 控制台</h1>
+          <p data-i18n="subtitle">反向代理管理、路由与运行监控</p>
+        </div>
+        <div class="controls">
+          <button class="btn-subtle" id="langBtn">EN</button>
+          <button class="btn-subtle" id="refreshBtn" data-i18n="refresh">刷新数据</button>
+          <button class="btn-subtle" id="logoutBtn" data-i18n="logout">退出登录</button>
+        </div>
+      </section>
+
+      <section class="view active" data-view-panel="overview">
+        <section class="kpis">
+          <article class="kpi"><small data-i18n="kpiSites">站点总数</small><strong id="kpiTotalSites">0</strong></article>
+          <article class="kpi"><small data-i18n="kpiEnabled">启用站点</small><strong id="kpiEnabledSites">0</strong></article>
+          <article class="kpi"><small data-i18n="kpiReq">累计请求</small><strong id="kpiTotalReq">0</strong></article>
+          <article class="kpi"><small data-i18n="kpiSuccess">成功率</small><strong id="kpiSuccessRate">0%</strong></article>
+          <article class="kpi"><small data-i18n="kpiLatency">平均延迟</small><strong id="kpiLatency">0 ms</strong></article>
+        </section>
+
+        <section class="overview-grid">
+          <section class="panel">
+            <div class="section-head">
+              <h2 data-i18n="overviewTitle">运行概览</h2>
+            </div>
+            <div class="overview-content">
+              <p class="hint" data-i18n="overviewDesc">通过左侧导航拆分功能界面，后续可平滑新增代理编排与运维能力。</p>
+              <ul class="overview-list">
+                <li data-i18n="overviewItem1">站点配置与流量日志已拆分为独立界面，便于扩展。</li>
+                <li data-i18n="overviewItem2">总览页保留关键 KPI，降低日常巡检切换成本。</li>
+                <li data-i18n="overviewItem3">专项模块页作为未来业务入口，避免后续大改布局。</li>
+              </ul>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="section-head">
+              <h2 data-i18n="overviewFutureTitle">扩展位预览</h2>
+            </div>
+            <div class="module-grid">
+              <article class="module-card">
+                <strong data-i18n="moduleTls">证书与 TLS</strong>
+                <span data-i18n="moduleTlsDesc">证书托管、自动续签、证书健康状态。</span>
+              </article>
+              <article class="module-card">
+                <strong data-i18n="moduleCanary">灰度发布</strong>
+                <span data-i18n="moduleCanaryDesc">按 Header/权重分流，实现按站点的灰度策略。</span>
+              </article>
+              <article class="module-card">
+                <strong data-i18n="moduleAcl">策略中心</strong>
+                <span data-i18n="moduleAclDesc">集中管理 WAF/IP/速率限制模板并复用。</span>
+              </article>
+              <article class="module-card">
+                <strong data-i18n="moduleAlert">监控告警</strong>
+                <span data-i18n="moduleAlertDesc">异常状态码、延迟和失败率阈值告警。</span>
+              </article>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="sites">
+        <section class="main-grid">
+          <section class="panel">
+            <div class="section-head">
+              <h2 id="formTitle" data-i18n="formCreate">创建站点</h2>
+              <div class="actions">
+                <button id="clearBtn" class="btn-ghost" data-i18n="clear">清空</button>
+              </div>
+            </div>
+            <form class="section-body" id="siteForm">
+              <div class="group">
+                <h3 data-i18n="groupBasic">基础配置</h3>
+                <div class="row2">
+                  <label><span data-i18n="name">名称</span><input id="name" type="text" data-placeholder="namePH" /></label>
+                  <label><span data-i18n="domain">主域名</span><input id="domain" type="text" data-placeholder="domainPH" /></label>
+                </div>
+                <label>
+                  <span data-i18n="assignedNode">归属节点</span>
+                  <select id="nodeId"></select>
+                </label>
+                <label><span data-i18n="extraDomain">附加域名（逗号分隔，可含 *.example.com）</span><input id="additionalDomains" type="text" data-placeholder="extraDomainPH" /></label>
+                <div class="row3">
+                  <label><span data-i18n="protocol">协议</span>
+                    <select id="protocol">
+                      <option value="">HTTP/HTTPS</option>
+                      <option value="tcp">TCP</option>
+                      <option value="udp">UDP</option>
+                      <option value="tls">TLS</option>
+                    </select>
+                  </label>
+                  <label class="toggle-row"><input id="enabled" type="checkbox" checked /><span data-i18n="enabled">启用站点</span></label>
+                  <label class="toggle-row"><input id="forceHttps" type="checkbox" checked /><span data-i18n="forceHttps">强制 HTTPS</span></label>
+                </div>
+                <div class="row2">
+                  <label><span data-i18n="lbStrategy">负载策略</span>
+                    <select id="loadBalanceStrategy">
+                      <option value="round_robin">round_robin</option>
+                      <option value="weighted_round_robin">weighted_round_robin</option>
+                      <option value="least_conn">least_conn</option>
+                      <option value="ip_hash">ip_hash</option>
+                      <option value="random">random</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="listenPort">监听端口（L4 协议必填）</span><input id="listenPort" type="number" min="1" max="65535" data-placeholder="listenPortPH" /></label>
+                </div>
+                <div class="row2">
+                  <label><span data-i18n="bindInterface">绑定网卡（可选，多选）</span>
+                    <div id="bindInterfaceContainer" class="bind-interface-container">
+                      <div class="bind-interface-placeholder">加载中...</div>
+                    </div>
+                  </label>
+                </div>
+                <p class="hint" data-i18n="listenPortHint">端口转发模式下填写目标端口（如 3306,53）；可选择绑定到特定网卡。</p>
+                <div id="l4Hint" class="hint l4-hint" style="display:none" data-i18n="l4Hint">L4 端口转发模式下，域名、路由、Header、限流等 HTTP 功能不可用。</div>
+                <label>
+                  <span data-i18n="customCert">自定义证书</span>
+                  <select id="certificateId"></select>
+                </label>
+                <p class="hint" data-i18n="customCertHint">可选。支持手动选择已有证书；不选择时将按域名自动匹配证书。</p>
+              </div>
+
+              <div class="group">
+                <h3 data-i18n="groupUpstream">默认上游池</h3>
+                <div id="upstreams" class="dynamic-list"></div>
+                <button type="button" class="btn-ghost" id="addUpstreamBtn" data-i18n="addUpstream">添加上游</button>
+                <p class="hint" data-i18n="upstreamHint">至少 1 个上游，权重用于 weighted_round_robin。</p>
+              </div>
+
+              <div class="group">
+                <h3 data-i18n="groupUpstreamTLS">上游 TLS</h3>
+                <details class="fold-card">
+                  <summary data-i18n="upstreamTlsAdvancedOptions">上游 TLS 高级选项</summary>
+                  <div class="fold-body">
+                    <div class="row2">
+                      <label class="toggle-row"><input id="upstreamTlsInsecureSkipVerify" type="checkbox" /><span data-i18n="upstreamTlsInsecureSkipVerify">跳过上游证书校验（仅测试环境）</span></label>
+                      <label><span data-i18n="upstreamTlsServerName">上游 SNI ServerName</span><input id="upstreamTlsServerName" type="text" data-placeholder="upstreamTlsServerNamePH" /></label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="upstreamTlsRootCAFile">上游根证书文件路径</span><input id="upstreamTlsRootCAFile" type="text" data-placeholder="upstreamTlsRootCAFilePH" /></label>
+                      <label><span data-i18n="upstreamTlsRootCAPem">上游根证书 PEM（可选）</span><input id="upstreamTlsRootCAPem" type="text" data-placeholder="upstreamTlsRootCAPemPH" /></label>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <div class="group">
+                <h3 data-i18n="groupResilience">流量韧性</h3>
+                <div class="row4">
+                  <label class="toggle-row"><input id="healthCheckEnabled" type="checkbox" /><span data-i18n="healthCheckEnabled">主动健康检查</span></label>
+                  <label><span data-i18n="healthCheckIntervalSeconds">检查间隔(秒)</span><input id="healthCheckIntervalSeconds" type="number" min="1" value="10" /></label>
+                  <label><span data-i18n="healthCheckTimeoutSeconds">超时(秒)</span><input id="healthCheckTimeoutSeconds" type="number" min="1" value="5" /></label>
+                  <label><span data-i18n="healthCheckExpectedStatus">期望状态码(0=2xx/3xx)</span><input id="healthCheckExpectedStatus" type="number" min="0" max="999" value="200" /></label>
+                </div>
+                <label><span data-i18n="healthCheckPath">健康检查路径</span><input id="healthCheckPath" type="text" data-placeholder="healthCheckPathPH" /></label>
+                <div class="row3">
+                  <label class="toggle-row"><input id="retryEnabled" type="checkbox" /><span data-i18n="retryEnabled">启用重试</span></label>
+                  <label><span data-i18n="retryAttempts">重试次数</span><input id="retryAttempts" type="number" min="1" value="2" /></label>
+                  <label><span data-i18n="retryStatuses">重试状态码（逗号分隔）</span><input id="retryStatuses" type="text" data-placeholder="retryStatusesPH" /></label>
+                </div>
+                <details class="fold-card">
+                  <summary data-i18n="advancedProxyOptions">高级反代选项</summary>
+                  <div class="fold-body">
+                    <div class="row4">
+                      <label><span data-i18n="retryBackoffStrategy">退避策略</span>
+                        <select id="retryBackoffStrategy">
+                          <option value="fixed">fixed</option>
+                          <option value="exponential">exponential</option>
+                        </select>
+                      </label>
+                      <label><span data-i18n="retryBackoffMillis">基础退避(ms)</span><input id="retryBackoffMillis" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="retryMaxBackoffMillis">最大退避(ms)</span><input id="retryMaxBackoffMillis" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="retryJitterPercent">抖动比例(0-100)</span><input id="retryJitterPercent" type="number" min="0" max="100" value="0" /></label>
+                    </div>
+                    <div class="row3">
+                      <label class="toggle-row"><input id="retryOn5xx" type="checkbox" checked /><span data-i18n="retryOn5xx">5xx 触发重试</span></label>
+                      <label class="toggle-row"><input id="retryOnTimeout" type="checkbox" /><span data-i18n="retryOnTimeout">超时触发重试</span></label>
+                      <label class="toggle-row"><input id="retryOnConnection" type="checkbox" /><span data-i18n="retryOnConnection">连接失败触发重试</span></label>
+                    </div>
+                    <div class="row4">
+                      <label><span data-i18n="timeoutConnectMillis">连接超时(ms)</span><input id="timeoutConnectMillis" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="timeoutResponseHeaderMillis">响应头超时(ms)</span><input id="timeoutResponseHeaderMillis" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="timeoutRequestMillis">整请求超时(ms)</span><input id="timeoutRequestMillis" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="timeoutIdleConnMillis">空闲连接超时(ms)</span><input id="timeoutIdleConnMillis" type="number" min="0" value="0" /></label>
+                    </div>
+                    <div class="row4">
+                      <label><span data-i18n="timeoutExpectContinueMillis">Expect-Continue 超时(ms)</span><input id="timeoutExpectContinueMillis" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="timeoutTLSHandshakeMillis">TLS 握手超时(ms)</span><input id="timeoutTLSHandshakeMillis" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="timeoutBackendKeepaliveMillis">后端 KeepAlive(ms)</span><input id="timeoutBackendKeepaliveMillis" type="number" min="0" value="0" /></label>
+                      <label class="toggle-row"><input id="timeoutBackendKeepaliveDisabled" type="checkbox" /><span data-i18n="timeoutBackendKeepaliveDisabled">禁用后端 KeepAlive</span></label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="timeoutMaxIdleConnsPerHost">每主机最大空闲连接</span><input id="timeoutMaxIdleConnsPerHost" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="timeoutMaxBackendConnections">每主机最大连接数</span><input id="timeoutMaxBackendConnections" type="number" min="0" value="0" /></label>
+                    </div>
+                  </div>
+                </details>
+                <details class="fold-card">
+                  <summary data-i18n="resilienceLessCommonOptions">缓存/压缩/熔断</summary>
+                  <div class="fold-body">
+                    <div class="row3">
+                      <label class="toggle-row"><input id="circuitEnabled" type="checkbox" /><span data-i18n="circuitEnabled">启用熔断</span></label>
+                      <label><span data-i18n="circuitFailureThreshold">失败阈值</span><input id="circuitFailureThreshold" type="number" min="1" value="5" /></label>
+                      <label><span data-i18n="circuitOpenSeconds">熔断时长(秒)</span><input id="circuitOpenSeconds" type="number" min="1" value="30" /></label>
+                    </div>
+                    <div class="row4">
+                      <label class="toggle-row"><input id="cacheEnabled" type="checkbox" /><span data-i18n="cacheEnabled">启用响应缓存</span></label>
+                      <label class="toggle-row"><input id="cacheProactive" type="checkbox" /><span data-i18n="cacheProactive">主动缓存（忽略上游无缓存头场景）</span></label>
+                      <label><span data-i18n="cacheTTLSeconds">缓存 TTL(秒)</span><input id="cacheTTLSeconds" type="number" min="1" value="30" /></label>
+                      <label><span data-i18n="cacheMaxEntries">缓存最大条目</span><input id="cacheMaxEntries" type="number" min="1" value="512" /></label>
+                    </div>
+                    <label><span data-i18n="cacheMaxBodyBytes">缓存最大响应体(Byte)</span><input id="cacheMaxBodyBytes" type="number" min="1" value="1048576" /></label>
+                    <details class="fold-card">
+                      <summary data-i18n="cacheAdvancedOptions">缓存高级选项</summary>
+                      <div class="fold-body">
+                        <label><span data-i18n="cacheKeyIgnoreQueryParams">缓存 Key 忽略 Query 参数（逗号分隔）</span><input id="cacheKeyIgnoreQueryParams" type="text" data-placeholder="cacheKeyIgnoreQueryParamsPH" /></label>
+                      </div>
+                    </details>
+                    <div class="row2">
+                      <label class="toggle-row"><input id="gzipEnabled" type="checkbox" /><span data-i18n="gzipEnabled">启用 Gzip 压缩</span></label>
+                      <label class="toggle-row"><input id="brotliEnabled" type="checkbox" /><span data-i18n="brotliEnabled">启用 Brotli 压缩</span></label>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <div class="group">
+                <h3 data-i18n="groupCanary">灰度发布</h3>
+                <div class="row2">
+                  <label class="toggle-row"><input id="canaryEnabled" type="checkbox" /><span data-i18n="canaryEnabled">启用灰度</span></label>
+                  <label><span data-i18n="canaryWeight">按权重分流(0-100)</span><input id="canaryWeight" type="number" min="0" max="100" value="0" /></label>
+                </div>
+                <details class="fold-card">
+                  <summary data-i18n="canaryAdvancedOptions">灰度高级选项</summary>
+                  <div class="fold-body">
+                    <div class="row2">
+                      <label><span data-i18n="canaryHeader">Header 名称</span><input id="canaryHeader" type="text" data-placeholder="canaryHeaderPH" /></label>
+                      <label><span data-i18n="canaryHeaderValue">Header 值（可选）</span><input id="canaryHeaderValue" type="text" data-placeholder="canaryHeaderValuePH" /></label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="canaryCookie">Cookie 名称</span><input id="canaryCookie" type="text" data-placeholder="canaryCookiePH" /></label>
+                      <label><span data-i18n="canaryCookieValue">Cookie 值（可选）</span><input id="canaryCookieValue" type="text" data-placeholder="canaryCookieValuePH" /></label>
+                    </div>
+                    <label><span data-i18n="canaryLbStrategy">灰度池负载策略</span>
+                      <select id="canaryLoadBalanceStrategy">
+                        <option value="round_robin">round_robin</option>
+                        <option value="weighted_round_robin">weighted_round_robin</option>
+                        <option value="least_conn">least_conn</option>
+                        <option value="ip_hash">ip_hash</option>
+                        <option value="random">random</option>
+                      </select>
+                    </label>
+                    <div id="canaryUpstreams" class="dynamic-list"></div>
+                    <button type="button" class="btn-ghost" id="addCanaryUpstreamBtn" data-i18n="addCanaryUpstream">添加灰度上游</button>
+                    <p class="hint" data-i18n="canaryHint">命中 Header/Cookie 规则优先进入灰度池；否则按 weight 分流。</p>
+                  </div>
+                </details>
+              </div>
+
+              <div class="group">
+                <h3 data-i18n="groupRoutes">路径规则</h3>
+                <div id="routes" class="dynamic-list"></div>
+                <button type="button" class="btn-ghost" id="addRouteBtn" data-i18n="addRoute">添加路径规则</button>
+                <p class="hint" data-i18n="routeHint">可按 prefix/exact/regex 匹配，rewritePattern 支持正则。</p>
+              </div>
+
+              <div class="group">
+                <h3 data-i18n="groupSecurity">安全与限速</h3>
+                <div class="row2">
+                  <label>
+                    <span data-i18n="ipRuleSetSelect">IP 成品规则</span>
+                    <select id="ipRuleSetId" multiple size="6"></select>
+                  </label>
+                  <div class="ip-rule-select-panel">
+                    <p class="hint" data-i18n="ipRuleSetSelectHint">可多选，按住 Ctrl/Cmd 进行连续选择。</p>
+                    <div id="siteIPRuleSetSummary" class="ip-rule-select-summary"></div>
+                  </div>
+                </div>
+                <div class="row2">
+                  <label><span data-i18n="allow">IP 白名单（逗号分隔）</span><textarea id="allowCidrs" rows="3" data-placeholder="allowPH"></textarea></label>
+                  <label><span data-i18n="deny">IP 黑名单（逗号分隔）</span><textarea id="denyCidrs" rows="3" data-placeholder="denyPH"></textarea></label>
+                </div>
+                <div class="row3">
+                  <label><span data-i18n="allowAsnsLabel">ASN 白名单（逗号分隔）</span><textarea id="allowAsns" rows="2" data-placeholder="allowAsnsPH"></textarea></label>
+                  <label><span data-i18n="denyAsnsLabel">ASN 黑名单（逗号分隔）</span><textarea id="denyAsns" rows="2" data-placeholder="denyAsnsPH"></textarea></label>
+                  <label><span data-i18n="denyReputationCidrsLabel">IP 信誉黑名单 CIDR/IP（逗号分隔）</span><textarea id="denyReputationCidrs" rows="2" data-placeholder="denyReputationCidrsPH"></textarea></label>
+                </div>
+                <div class="row3">
+                  <label class="toggle-row"><input id="rateEnabled" type="checkbox" /><span data-i18n="rateEnabled">启用限速</span></label>
+                  <label><span data-i18n="rpm">请求/分钟</span><input id="requestsPerMinute" type="number" min="1" value="120" /></label>
+                  <label><span data-i18n="burst">Burst</span><input id="burst" type="number" min="0" value="30" /></label>
+                </div>
+                <details class="fold-card">
+                  <summary data-i18n="securityAdvancedOptions">安全高级选项</summary>
+                  <div class="fold-body">
+                    <div class="row4">
+                      <label class="toggle-row"><input id="autoBlockEnabled" type="checkbox" /><span data-i18n="autoBlockEnabled">启用自动封锁</span></label>
+                      <label><span data-i18n="autoBlockThreshold">触发次数</span><input id="autoBlockThreshold" type="number" min="1" value="5" /></label>
+                      <label><span data-i18n="autoBlockWindow">统计窗口(秒)</span><input id="autoBlockWindowSeconds" type="number" min="1" value="60" /></label>
+                      <label><span data-i18n="autoBlockSeconds">封锁时长(秒)</span><input id="autoBlockSeconds" type="number" min="1" value="600" /></label>
+                    </div>
+                    <div class="row3">
+                      <label class="toggle-row"><input id="authEnabled" type="checkbox" /><span data-i18n="authEnabled">启用 Basic Auth</span></label>
+                      <label><span data-i18n="authUser">用户名</span><input id="authUsername" type="text" /></label>
+                      <label><span data-i18n="authPass">密码（编辑时留空保持原值）</span><input id="authPassword" type="password" /></label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="maxConcurrent">最大并发请求</span><input id="maxConcurrentRequests" type="number" min="0" value="0" /></label>
+                      <label><span data-i18n="allowedMethods">允许 HTTP 方法（逗号分隔）</span><input id="allowedMethods" type="text" data-placeholder="allowedMethodsPH" /></label>
+                    </div>
+                    <div class="row2">
+                      <label class="toggle-row"><input id="enableSecurityHeaders" type="checkbox" /><span data-i18n="enableSecurityHeaders">启用安全响应头</span></label>
+                      <label><span data-i18n="blockedUserAgents">拦截 User-Agent 正则（逗号分隔）</span><input id="blockUserAgentPatterns" type="text" data-placeholder="blockedUserAgentsPH" /></label>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- JWT Authentication -->
+              <div class="group">
+                <h3 data-i18n="groupJWT">JWT 验证</h3>
+                <details class="fold-card">
+                  <summary data-i18n="jwtAdvancedOptions">JWT 验证高级选项</summary>
+                  <div class="fold-body">
+                    <div class="row2">
+                      <label class="toggle-row"><input id="jwtEnabled" type="checkbox" /><span data-i18n="jwtEnabled">启用 JWT 验证</span></label>
+                      <label><span data-i18n="jwtExtractFrom">提取方式</span>
+                        <select id="jwtExtractFrom">
+                          <option value="header">header (Authorization: Bearer)</option>
+                          <option value="cookie">cookie</option>
+                          <option value="query">query</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="jwtExtractName">字段名</span><input id="jwtExtractName" type="text" placeholder="Authorization" /></label>
+                      <label><span data-i18n="jwtSigningAlgorithm">签名算法</span>
+                        <select id="jwtSigningAlgorithm">
+                          <option value="HS256">HS256</option>
+                          <option value="HS384">HS384</option>
+                          <option value="HS512">HS512</option>
+                          <option value="RS256">RS256</option>
+                          <option value="ES256">ES256</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="jwtHMACSecret">HMAC 密钥</span><input id="jwtHMACSecret" type="password" /></label>
+                      <label><span data-i18n="jwtJWKSURL">JWKS URL</span><input id="jwtJWKSURL" type="text" placeholder="https://auth.example.com/.well-known/jwks.json" /></label>
+                    </div>
+                    <div class="row3">
+                      <label><span data-i18n="jwtIssuer">Issuer</span><input id="jwtIssuer" type="text" /></label>
+                      <label><span data-i18n="jwtAudience">Audience</span><input id="jwtAudience" type="text" /></label>
+                      <label class="toggle-row"><input id="jwtForwardToken" type="checkbox" /><span data-i18n="jwtForwardToken">转发 Token 到上游</span></label>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- WAF -->
+              <div class="group">
+                <h3 data-i18n="groupWAF">WAF 防火墙</h3>
+                <details class="fold-card">
+                  <summary data-i18n="wafAdvancedOptions">WAF 高级选项</summary>
+                  <div class="fold-body">
+                    <div class="row3">
+                      <label class="toggle-row"><input id="wafEnabled" type="checkbox" /><span data-i18n="wafEnabled">启用 WAF</span></label>
+                      <label><span data-i18n="wafMode">模式</span>
+                        <select id="wafMode">
+                          <option value="block">block（拦截）</option>
+                          <option value="detect">detect（仅记录）</option>
+                        </select>
+                      </label>
+                      <label><span data-i18n="wafSeverityThreshold">告警等级下限</span>
+                        <select id="wafSeverityThreshold">
+                          <option value="low">low — 全部告警</option>
+                          <option value="medium">medium</option>
+                          <option value="high">high</option>
+                          <option value="critical">critical — 仅严重</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label><span data-i18n="wafExcludePaths">排除路径（逗号分隔，支持通配符）</span><input id="wafExcludePaths" type="text" placeholder="/healthz, /metrics, /webhook/*" /></label>
+                  </div>
+                </details>
+              </div>
+
+              <!-- OAuth/OIDC -->
+              <div class="group">
+                <h3 data-i18n="groupOAuth">OAuth / OIDC / SSO</h3>
+                <details class="fold-card">
+                  <summary data-i18n="oauthAdvancedOptions">OAuth 认证高级选项</summary>
+                  <div class="fold-body">
+                    <div class="row2">
+                      <label class="toggle-row"><input id="oauthEnabled" type="checkbox" /><span data-i18n="oauthEnabled">启用 OAuth 认证</span></label>
+                      <label><span data-i18n="oauthProvider">Provider</span>
+                        <select id="oauthProvider">
+                          <option value="google">Google</option>
+                          <option value="github">GitHub</option>
+                          <option value="oidc">OIDC (通用)</option>
+                          <option value="generic">Generic OAuth2</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="oauthClientID">Client ID</span><input id="oauthClientID" type="text" /></label>
+                      <label><span data-i18n="oauthClientSecret">Client Secret</span><input id="oauthClientSecret" type="password" /></label>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="oauthAllowedDomains">允许域名（逗号分隔，如 company.com）</span><input id="oauthAllowedDomains" type="text" /></label>
+                      <label><span data-i18n="oauthAllowedEmails">允许邮箱（逗号分隔）</span><input id="oauthAllowedEmails" type="text" /></label>
+                    </div>
+                    <label><span data-i18n="oauthCallbackURL">回调地址</span><input id="oauthCallbackURL" type="text" placeholder="https://proxy.example.com/oauth/google/callback" /></label>
+                  </div>
+                </details>
+              </div>
+
+              <!-- gRPC -->
+              <div class="group">
+                <h3 data-i18n="groupGRPC">gRPC 代理</h3>
+                <div class="row2">
+                  <label class="toggle-row"><input id="grpcEnabled" type="checkbox" /><span data-i18n="grpcEnabled">启用 gRPC 代理</span></label>
+                  <label class="toggle-row"><input id="grpcH2C" type="checkbox" /><span data-i18n="grpcH2C">启用 h2c（Clear-Txt HTTP/2）</span></label>
+                </div>
+                <p class="hint" data-i18n="grpcHint">启用后自动识别 Content-Type: application/grpc 请求并优化处理。h2c 用于无 TLS 的 gRPC 连接。</p>
+              </div>
+
+              <div class="group">
+                <h3 data-i18n="groupHeaders">请求/响应头</h3>
+                <div class="row2">
+                  <label class="toggle-row"><input id="autoRequestHeaders" type="checkbox" /><span data-i18n="autoReqHeaders">自动配置请求头</span></label>
+                  <label class="toggle-row"><input id="autoResponseHeaders" type="checkbox" /><span data-i18n="autoRespHeaders">自动配置响应头</span></label>
+                </div>
+                <details class="fold-card">
+                  <summary data-i18n="headerAdvancedOptions">Header 手动改写</summary>
+                  <div class="fold-body">
+                    <div>
+                      <div class="hint" data-i18n="reqHeaders">请求头设置</div>
+                      <div id="requestHeaders" class="dynamic-list"></div>
+                      <button type="button" class="btn-ghost" id="addReqHeaderBtn" data-i18n="addHeader">添加 Header</button>
+                    </div>
+                    <div>
+                      <div class="hint" data-i18n="respHeaders">响应头设置</div>
+                      <div id="responseHeaders" class="dynamic-list"></div>
+                      <button type="button" class="btn-ghost" id="addRespHeaderBtn" data-i18n="addHeader">添加 Header</button>
+                    </div>
+                    <div class="row2">
+                      <label><span data-i18n="removeReq">删除请求头（逗号分隔）</span><input id="removeReqHeaders" type="text" data-placeholder="removeHeaderPH" /></label>
+                      <label><span data-i18n="removeResp">删除响应头（逗号分隔）</span><input id="removeRespHeaders" type="text" data-placeholder="removeHeaderPH" /></label>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <div class="error" id="errorBox"></div>
+              <div class="success" id="successBox"></div>
+              <div class="actions">
+                <button type="submit" class="btn-primary" id="submitBtn" data-i18n="create">创建</button>
+                <button type="button" class="btn-neutral" id="cancelEditBtn" hidden data-i18n="cancelEdit">取消编辑</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2 data-i18n="siteList">站点列表</h2>
+            </div>
+            <div class="search-row">
+              <input id="searchInput" type="text" data-placeholder="searchPH" />
+              <button class="btn-ghost" id="reloadSitesBtn" data-i18n="reloadSite">刷新列表</button>
+            </div>
+            <div class="section-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="thDomain">域名</th>
+                      <th data-i18n="thNode">节点</th>
+                      <th data-i18n="thUpstream">上游</th>
+                      <th data-i18n="thCert">证书</th>
+                      <th data-i18n="thStatus">状态</th>
+                      <th data-i18n="thReq">请求</th>
+                      <th data-i18n="thUpdated">更新时间</th>
+                      <th data-i18n="thActions">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sitesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="certs">
+        <section class="main-grid">
+          <section class="panel">
+            <div class="section-head">
+              <h2 data-i18n="certFormTitle">签发证书</h2>
+            </div>
+            <form class="section-body" id="certForm">
+              <div class="group">
+                <h3 data-i18n="certBasicTitle">基础信息</h3>
+                <div class="row2">
+                  <label><span data-i18n="certName">证书名称</span><input id="certName" type="text" data-placeholder="certNamePH" /></label>
+                  <label><span data-i18n="certType">证书类型</span>
+                    <select id="certType">
+                      <option value="acme">acme</option>
+                      <option value="self_signed">self_signed</option>
+                    </select>
+                  </label>
+                </div>
+                <label><span data-i18n="certDomains">域名（逗号分隔，支持 *.example.com）</span><input id="certDomains" type="text" data-placeholder="certDomainsPH" /></label>
+                <p class="hint" data-i18n="certDomainsHint">ACME 支持 http-01 和 dns-01；泛域名必须使用 dns-01 并配置 DNS 提供商。</p>
+              </div>
+
+              <div class="group" id="acmeFields">
+                <h3 data-i18n="acmeTitle">自动申请（ACME）</h3>
+                <div class="row3">
+                  <label><span data-i18n="acmeEmail">邮箱</span><input id="acmeEmail" type="email" data-placeholder="acmeEmailPH" /></label>
+                  <label><span data-i18n="acmeProvider">CA 提供方</span>
+                    <select id="acmeProvider">
+                      <option value="letsencrypt">letsencrypt</option>
+                      <option value="zerossl">zerossl</option>
+                      <option value="custom">custom</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="acmeChallenge">挑战方式</span>
+                    <select id="acmeChallenge">
+                      <option value="http-01">http-01</option>
+                      <option value="dns-01">dns-01</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="row3">
+                  <label><span data-i18n="acmeKeyType">密钥类型</span>
+                    <select id="acmeKeyType">
+                      <option value="ecdsa">ecdsa</option>
+                      <option value="rsa">rsa</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="acmeRenewBefore">提前续签天数</span><input id="acmeRenewBeforeDays" type="number" min="1" value="30" /></label>
+                  <label class="toggle-row"><input id="acmeAutoIssue" type="checkbox" checked /><span data-i18n="acmeAutoIssue">创建后立即申请</span></label>
+                </div>
+                <div class="row2">
+                  <label><span data-i18n="acmeDirectoryURL">自定义 Directory URL</span><input id="acmeDirectoryURL" type="text" data-placeholder="acmeDirectoryURLPH" /></label>
+                  <label><span data-i18n="acmePreferredChain">Preferred Chain</span><input id="acmePreferredChain" type="text" /></label>
+                </div>
+                <div class="group" id="dnsProviderFields" style="display:none">
+                  <h4 data-i18n="dnsProviderTitle">DNS 提供商配置（dns-01 必填）</h4>
+                  <div class="row2">
+                    <label><span data-i18n="dnsProviderName">DNS 提供商</span>
+                      <select id="dnsProviderName">
+                        <option value="">-- 选择 --</option>
+                        <option value="cloudflare">Cloudflare</option>
+                        <option value="alidns">AliDNS (阿里云)</option>
+                        <option value="route53">Route53 (AWS)</option>
+                        <option value="dnspod">DNSPod (腾讯云)</option>
+                        <option value="gcloud">Google Cloud DNS</option>
+                      </select>
+                    </label>
+                    <label><span data-i18n="dnsProviderConfig">配置 (JSON)</span><input id="dnsProviderConfig" type="text" placeholder='{"authToken":"..."}' /></label>
+                  </div>
+                  <p class="hint" data-i18n="dnsProviderHint">
+                    Cloudflare: {"authToken":"..."}  |  AliDNS: {"accessKeyId":"...","accessKeySecret":"..."}
+                    Route53/AWS: 使用环境变量  |  DNSPod: {"loginToken":"..."}  |  Google Cloud: 使用环境变量
+                  </p>
+                </div>
+              </div>
+
+              <div class="group" id="selfSignedFields">
+                <h3 data-i18n="selfTitle">自签名证书</h3>
+                <div class="row3">
+                  <label><span data-i18n="selfCommonName">Common Name</span><input id="selfCommonName" type="text" data-placeholder="selfCommonNamePH" /></label>
+                  <label><span data-i18n="selfKeyAlgo">密钥算法</span>
+                    <select id="selfKeyAlgorithm">
+                      <option value="rsa">rsa</option>
+                      <option value="ecdsa">ecdsa</option>
+                      <option value="ed25519">ed25519</option>
+                    </select>
+                  </label>
+                  <label><span data-i18n="selfValidDays">有效期天数</span><input id="selfValidDays" type="number" min="1" value="397" /></label>
+                </div>
+                <div class="row3">
+                  <label><span data-i18n="selfRSABits">RSA Bits</span><input id="selfRSABits" type="number" min="2048" max="8192" value="2048" /></label>
+                  <label><span data-i18n="selfECDSACurve">ECDSA Curve</span>
+                    <select id="selfECDSACurve">
+                      <option value="p256">p256</option>
+                      <option value="p384">p384</option>
+                      <option value="p521">p521</option>
+                    </select>
+                  </label>
+                  <label class="toggle-row"><input id="selfIsCA" type="checkbox" /><span data-i18n="selfIsCA">作为 CA 证书</span></label>
+                </div>
+                <div class="row2">
+                  <label><span data-i18n="selfOrg">Organization（逗号分隔）</span><input id="selfOrganization" type="text" /></label>
+                  <label><span data-i18n="selfOU">OU（逗号分隔）</span><input id="selfOrganizationalUnit" type="text" /></label>
+                </div>
+                <div class="row3">
+                  <label><span data-i18n="selfCountry">Country</span><input id="selfCountry" type="text" /></label>
+                  <label><span data-i18n="selfProvince">Province</span><input id="selfProvince" type="text" /></label>
+                  <label><span data-i18n="selfLocality">Locality</span><input id="selfLocality" type="text" /></label>
+                </div>
+                <div class="row3">
+                  <label><span data-i18n="selfDNSNames">附加 DNS SAN</span><input id="selfDNSNames" type="text" data-placeholder="selfDNSPH" /></label>
+                  <label><span data-i18n="selfIPSAN">IP SAN</span><input id="selfIPAddresses" type="text" data-placeholder="selfIPPH" /></label>
+                  <label><span data-i18n="selfEmailSAN">Email SAN</span><input id="selfEmailAddresses" type="text" /></label>
+                </div>
+                <label><span data-i18n="selfURISAN">URI SAN（逗号分隔）</span><input id="selfURIs" type="text" data-placeholder="selfURIPH" /></label>
+              </div>
+
+              <div class="error" id="certErrorBox"></div>
+              <div class="success" id="certSuccessBox"></div>
+              <div class="actions">
+                <button type="submit" class="btn-primary" id="certSubmitBtn" data-i18n="certCreate">创建证书</button>
+                <button type="button" class="btn-neutral" id="certClearBtn" data-i18n="clear">清空</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2 data-i18n="certListTitle">证书列表</h2>
+              <div class="actions">
+                <button class="btn-ghost" id="reloadCertsBtn" data-i18n="certReload">刷新列表</button>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="certThName">名称</th>
+                      <th data-i18n="certThType">类型</th>
+                      <th data-i18n="certThDomains">域名</th>
+                      <th data-i18n="certThStatus">状态</th>
+                      <th data-i18n="certThIssuer">颁发者</th>
+                      <th data-i18n="certThExpire">到期时间</th>
+                      <th data-i18n="certThActions">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="certsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="logs">
+        <section class="panel logs-panel">
+          <div class="section-head">
+            <h2 data-i18n="logsTitle">最近访问日志</h2>
+            <div class="actions">
+              <button class="btn-ghost" id="reloadLogsBtn" data-i18n="reloadLog">刷新日志</button>
+              <label class="toggle-row" style="padding:0">
+                <input id="logLiveEnabled" type="checkbox" />
+                <span data-i18n="logLive">实时推送</span>
+              </label>
+              <label class="toggle-row" style="padding:0">
+                <input id="logFoldEnabled" type="checkbox" />
+                <span data-i18n="logFoldEnabled">折叠相似请求</span>
+              </label>
+              <label class="toggle-row" style="padding:0">
+                <span data-i18n="logFoldWindow">窗口(秒)</span>
+                <select id="logFoldWindow">
+                  <option value="1">1</option>
+                  <option value="3" selected>3</option>
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="30">30</option>
+                </select>
+              </label>
+              <label class="toggle-row" style="padding:0">
+                <span data-i18n="logLimit">条数</span>
+                <select id="logLimit">
+                  <option value="20">20</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th data-i18n="logTime">时间</th>
+                    <th data-i18n="logSite">站点</th>
+                    <th data-i18n="logReq">请求</th>
+                    <th data-i18n="logStatus">状态</th>
+                    <th data-i18n="logDuration">耗时</th>
+                    <th data-i18n="logUpstream">上游</th>
+                    <th data-i18n="logClient">客户端</th>
+                  </tr>
+                </thead>
+                <tbody id="logsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="settings">
+        <section class="panel">
+          <div class="section-head">
+            <h2 data-i18n="settingsTitle">系统设置</h2>
+          </div>
+          <form class="section-body" id="settingsForm">
+            <div class="group">
+              <h3 data-i18n="settingsUiTitle">Web 控制台</h3>
+              <div class="row2">
+                <label>
+                  <span data-i18n="settingsLanguage">默认语言</span>
+                  <select id="settingsLanguage">
+                    <option value="zh">简体中文</option>
+                    <option value="zh-tw">正體中文</option>
+                    <option value="en">English</option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="settingsWebPort">Web 端口</span>
+                  <input id="settingsWebPort" type="number" min="1" max="65535" data-placeholder="settingsWebPortPH" />
+                </label>
+              </div>
+              <p class="hint" data-i18n="settingsWebPortHint">保存后将立即切换到新端口，当前页面可能需要重新打开。</p>
+            </div>
+            <div class="group">
+              <h3 data-i18n="settingsAlertTitle">告警 Webhook</h3>
+              <div class="row2">
+                <label>
+                  <span data-i18n="settingsAlertWebhook">Webhook URL</span>
+                  <input id="alertWebhookUrl" type="text" data-placeholder="settingsAlertWebhookPH" />
+                </label>
+                <label>
+                  <span data-i18n="settingsAlertCooldown">告警冷却时间</span>
+                  <input id="alertCooldown" type="text" data-placeholder="settingsAlertCooldownPH" />
+                </label>
+              </div>
+              <div class="row2">
+                <label>
+                  <span data-i18n="settingsAlertConsecutive5xx">连续 5xx 阈值</span>
+                  <input id="alertConsecutive5xx" type="number" min="1" max="100000" />
+                </label>
+                <label>
+                  <span data-i18n="settingsAlertLatencyMs">延迟阈值(ms, 0=关闭)</span>
+                  <input id="alertLatencyMs" type="number" min="0" />
+                </label>
+              </div>
+            </div>
+            <div class="group">
+              <h3 data-i18n="settingsAdminTlsTitle">管理端 HTTPS</h3>
+              <div class="row3">
+                <label class="toggle-row" style="padding:0">
+                  <input id="adminTlsEnabled" type="checkbox" />
+                  <span data-i18n="settingsAdminTlsEnabled">启用管理端 HTTPS</span>
+                </label>
+                <label class="toggle-row" style="padding:0">
+                  <input id="adminTlsRedirectHttp" type="checkbox" />
+                  <span data-i18n="settingsAdminTlsRedirectHttp">HTTP 自动跳转 HTTPS</span>
+                </label>
+                <label class="toggle-row" style="padding:0">
+                  <input id="adminTlsAutoSelfSigned" type="checkbox" />
+                  <span data-i18n="settingsAdminTlsAutoSelfSigned">自动生成自签证书</span>
+                </label>
+              </div>
+              <div class="row2">
+                <label>
+                  <span data-i18n="settingsAdminTlsPort">HTTPS 端口</span>
+                  <input id="adminTlsHttpsPort" type="number" min="1" max="65535" data-placeholder="settingsAdminTlsPortPH" />
+                </label>
+                <label>
+                  <span data-i18n="settingsAdminTlsCertificateId">证书列表选择</span>
+                  <select id="adminTlsCertificateId"></select>
+                </label>
+              </div>
+              <p class="hint" data-i18n="settingsAdminTlsHint">管理端 HTTPS 配置保存后需重启 FlowProxy 才会生效。</p>
+            </div>
+            <div class="group">
+              <h3 data-i18n="clusterSyncTitle">Cluster Sync</h3>
+              <div class="row3">
+                <label class="toggle-row" style="padding:0">
+                  <input id="clusterSyncCertificateSyncEnabled" type="checkbox" checked />
+                  <span data-i18n="clusterSyncCertSync">启用证书资产镜像</span>
+                </label>
+                <label class="toggle-row" style="padding:0">
+                  <input id="clusterSyncFailCloseEnabled" type="checkbox" checked />
+                  <span data-i18n="clusterSyncFailClose">启用同步失败保护（Fail-Close）</span>
+                </label>
+              </div>
+              <div class="row2">
+                <label>
+                  <span data-i18n="clusterSyncConsecutiveFailures">连续失败阈值</span>
+                  <input id="clusterSyncFailCloseConsecutiveFailures" type="number" min="1" max="100000" value="10" />
+                </label>
+                <label>
+                  <span data-i18n="clusterSyncStaleAfter">配置过期阈值</span>
+                  <input id="clusterSyncFailCloseStaleAfter" type="text" placeholder="e.g. 5m" value="5m" />
+                </label>
+              </div>
+              <p class="hint" data-i18n="clusterSyncHint">执行节点跨设备同步失败达到阈值后会返回 503，恢复成功后自动解除。</p>
+            </div>
+            <!-- Distributed Rate Limiting -->
+            <div class="group">
+              <h3 data-i18n="rateLimitTitle">分布式限流</h3>
+              <div class="row2">
+                <label>
+                  <span data-i18n="rateLimitBackend">限流后端</span>
+                  <select id="rateLimitBackend">
+                    <option value="local">local（本地内存）</option>
+                    <option value="redis">redis（分布式）</option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="rateLimitRedisEndpoint">Redis 地址</span>
+                  <input id="rateLimitRedisEndpoint" type="text" placeholder="127.0.0.1:6379" />
+                </label>
+              </div>
+              <div class="row2">
+                <label>
+                  <span data-i18n="rateLimitRedisPassword">Redis 密码</span>
+                  <input id="rateLimitRedisPassword" type="password" />
+                </label>
+                <label>
+                  <span data-i18n="rateLimitRedisDB">Redis DB</span>
+                  <input id="rateLimitRedisDB" type="number" min="0" max="15" value="0" />
+                </label>
+              </div>
+              <p class="hint" data-i18n="rateLimitHint">Redis 不可用时自动降级到本地限流，恢复后自动切换回 Redis。</p>
+            </div>
+            <div class="group">
+              <h3 data-i18n="backupTitle">配置备份</h3>
+              <div class="row3">
+                <label class="toggle-row" style="padding:0">
+                  <input id="backupEnabled" type="checkbox" />
+                  <span data-i18n="backupEnabled">启用定时备份</span>
+                </label>
+                <label>
+                  <span data-i18n="backupInterval">备份间隔</span>
+                  <input id="backupInterval" type="text" data-placeholder="backupIntervalPH" />
+                </label>
+                <label>
+                  <span data-i18n="backupKeepLast">保留份数</span>
+                  <input id="backupKeepLast" type="number" min="1" max="1000" />
+                </label>
+              </div>
+              <p class="hint" data-i18n="backupHint">备份包含站点、设置、证书数据与证书文件目录；间隔支持 Go duration，如 12h / 30m。</p>
+              <div class="actions">
+                <button type="button" class="btn-primary" id="backupQuickDownloadBtn" data-i18n="backupQuickDownload">一键下载备份</button>
+                <button type="button" class="btn-primary" id="backupNowBtn" data-i18n="backupNow">立即备份</button>
+                <button type="button" class="btn-neutral" id="backupUploadBtn" data-i18n="backupUpload">上传备份</button>
+                <input id="backupUploadInput" type="file" accept=".zip,application/zip" style="display:none" />
+                <button type="button" class="btn-neutral" id="backupReloadBtn" data-i18n="backupReload">刷新备份列表</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="backupThName">文件</th>
+                      <th data-i18n="backupThSize">大小</th>
+                      <th data-i18n="backupThTime">时间</th>
+                      <th data-i18n="backupThActions">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="backupBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="group">
+              <h3 data-i18n="accountTitle">管理员账号</h3>
+              <div class="row2">
+                <label>
+                  <span data-i18n="accountCurrentUser">当前账号</span>
+                  <input id="currentAdminUsername" type="text" readonly />
+                </label>
+                <label>
+                  <span data-i18n="accountNewUser">新账号</span>
+                  <input id="newAdminUsername" type="text" data-placeholder="accountNewUserPH" />
+                </label>
+              </div>
+              <div class="row3">
+                <label>
+                  <span data-i18n="accountCurrentPass">当前密码</span>
+                  <input id="currentAdminPassword" type="password" data-placeholder="accountCurrentPassPH" />
+                </label>
+                <label>
+                  <span data-i18n="accountNewPass">新密码</span>
+                  <input id="newAdminPassword" type="password" data-placeholder="accountNewPassPH" />
+                </label>
+                <label>
+                  <span data-i18n="accountConfirmPass">确认新密码</span>
+                  <input id="confirmAdminPassword" type="password" data-placeholder="accountConfirmPassPH" />
+                </label>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn-primary" id="accountSaveBtn" data-i18n="accountSaveBtn">更新账号密码</button>
+              </div>
+              <p class="hint" data-i18n="accountResetHint">忘记账号或密码时，请在服务器命令行执行 reset-admin 命令重置。</p>
+            </div>
+            <div class="error" id="settingsErrorBox"></div>
+            <div class="success" id="settingsSuccessBox"></div>
+            <div class="actions">
+              <button type="submit" class="btn-primary" id="settingsSubmitBtn" data-i18n="settingsSave">保存设置</button>
+              <button type="button" class="btn-neutral" id="settingsResetBtn" data-i18n="settingsReset">恢复当前值</button>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="iprules">
+        <section class="main-grid ip-rules-grid">
+          <section class="panel">
+            <div class="section-head">
+              <h2 id="ipRuleEditorTitle" data-i18n="addIPRuleSet">添加 IP 规则</h2>
+              <div class="actions">
+                <button type="button" class="btn-ghost" id="ipRuleCreatorResetBtn" data-i18n="clear">清空</button>
+                <button type="button" class="btn-neutral" id="ipRuleCreatorCancelBtn" data-i18n="cancelEdit" hidden>取消编辑</button>
+              </div>
+            </div>
+            <div class="section-body ip-rule-creator-body">
+              <p class="hint" data-i18n="settingsIPRuleSetsHint">站点可直接选择成品规则，支持在站点中继续追加临时白名单/黑名单。</p>
+              <div id="ipRuleSetCreatorHost"></div>
+              <div class="actions">
+                <button type="button" class="btn-primary" id="addIPPageRuleSetBtn" data-i18n="addIPRuleSet">添加 IP 规则</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2 data-i18n="ipRulesListTitle">规则列表</h2>
+              <div class="actions">
+                <button type="submit" class="btn-primary" id="ipSettingsSubmitBtn" form="ipSettingsForm" data-i18n="settingsSave">保存设置</button>
+              </div>
+            </div>
+            <form class="section-body ip-rules-manage-body" id="ipSettingsForm">
+              <div id="ipSettingsOverview" class="ip-rules-overview"></div>
+              <div id="ipRuleSetManageCards" class="dynamic-list ip-rules-manage-list"></div>
+              <div id="ipSettingsIPRuleSets" class="dynamic-list ip-rules-storage" hidden></div>
+              <details class="fold-card" open>
+                <summary data-i18n="settingsAccessTitle">Web 访问规则</summary>
+                <div class="fold-body">
+                  <p class="hint" data-i18n="ipRuleInputHint">支持逗号、分号或换行分隔；保存前可先“整理去重”。</p>
+                  <div class="row2">
+                    <label>
+                      <span data-i18n="settingsAllowCidrs">允许访问 CIDR/IP（逗号/换行分隔）</span>
+                      <textarea id="ipSettingsAllowCidrs" rows="4" data-placeholder="settingsAllowCidrsPH"></textarea>
+                    </label>
+                    <label>
+                      <span data-i18n="settingsDenyCidrs">拒绝访问 CIDR/IP（逗号/换行分隔）</span>
+                      <textarea id="ipSettingsDenyCidrs" rows="4" data-placeholder="settingsDenyCidrsPH"></textarea>
+                    </label>
+                  </div>
+                  <div class="actions">
+                    <button type="button" class="btn-neutral" id="ipSettingsNormalizeBtn" data-i18n="ipRulesNormalizeBtn">整理并去重</button>
+                  </div>
+                  <p class="hint" data-i18n="settingsAccessHint">Allow 为空表示允许所有来源；Deny 命中优先拒绝。</p>
+                  <div class="row2">
+                    <label>
+                      <span data-i18n="ipRuleSourceOrderLabel">IP 来源优先级（高到低，逗号分隔）</span>
+                      <input id="ipRuleSourceOrder" type="text" placeholder="site, custom, country" />
+                    </label>
+                    <div class="hint" data-i18n="ipRuleSourceOrderHint">可选值：site, custom, country。示例：custom, country, site（自定义 IP 优先于国家 IP）。</div>
+                  </div>
+                </div>
+              </details>
+              <details class="fold-card">
+                <summary data-i18n="settingsIPCountryAutoUpdatesTitle">国家 IP 自动更新</summary>
+                <div class="fold-body">
+                  <div id="ipSettingsIPCountryAutoUpdates" class="dynamic-list"></div>
+                  <button type="button" class="btn-ghost" id="addIPCountryAutoUpdateBtn" data-i18n="addIPCountryAutoUpdate">添加自动更新任务</button>
+                  <p class="hint" data-i18n="settingsIPCountryAutoUpdatesHint">按国家自动拉取 CIDR 并注入到指定 IP 规则模板；保存后会立即触发一次更新。</p>
+                  <div class="group">
+                    <h3 data-i18n="ipRulesTaskListTitle">自动任务列表</h3>
+                    <div id="ipCountryTaskListSummary" class="ip-settings-summary-list"></div>
+                  </div>
+                </div>
+              </details>
+              <details class="fold-card">
+                <summary data-i18n="ipRulesTransferTitle">规则导入/导出</summary>
+                <div class="fold-body">
+                  <div class="actions">
+                    <button type="button" class="btn-neutral" id="ipRulesImportBtn" data-i18n="ipRulesImportBtn">导入规则文件</button>
+                    <button type="button" class="btn-ghost" id="ipRulesExportTxtBtn" data-i18n="ipRulesExportTxtBtn">导出 TXT</button>
+                    <button type="button" class="btn-ghost" id="ipRulesExportCsvBtn" data-i18n="ipRulesExportCsvBtn">导出 CSV</button>
+                    <button type="button" class="btn-ghost" id="ipRulesExportJsonBtn" data-i18n="ipRulesExportJsonBtn">导出 JSON</button>
+                  </div>
+                  <input id="ipRulesImportInput" type="file" accept=".txt,.csv,.json,text/plain,text/csv,application/json" style="display:none" />
+                  <p class="hint" data-i18n="ipRulesTransferHint">支持导入 txt/csv/json；导入会替换当前页面中的全局规则与模板。</p>
+                </div>
+              </details>
+              <div class="error" id="ipSettingsErrorBox"></div>
+              <div class="success" id="ipSettingsSuccessBox"></div>
+            </form>
+          </section>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="nodes">
+        <section class="main-grid">
+          <section class="panel">
+            <div class="section-head">
+              <h2 id="nodeFormTitle" data-i18n="nodeAdd">添加节点</h2>
+              <div class="actions">
+                <button type="button" id="nodeClearBtn" class="btn-ghost" data-i18n="clear">清空</button>
+              </div>
+            </div>
+            <form class="section-body" id="nodeForm">
+              <div class="group">
+                <h3 data-i18n="nodeMetadata">节点元数据</h3>
+                <div class="row2">
+                  <label><span data-i18n="nodeNodeId">节点 ID</span><input id="nodeNodeId" type="text" placeholder="e.g. edge-shanghai" /></label>
+                  <label><span data-i18n="nodeNodeName">节点名称</span><input id="nodeName" type="text" placeholder="e.g. Shanghai Edge" /></label>
+                </div>
+                <div class="row2">
+                  <label><span data-i18n="nodeEndpoint">管理端地址</span><input id="nodeEndpoint" type="text" placeholder="e.g. 10.0.0.8:9000" /></label>
+                  <label><span data-i18n="nodeTags">标签</span><input id="nodeTags" type="text" placeholder="e.g. vps, cn, arm64" /></label>
+                </div>
+                <label class="toggle-row"><input id="nodeEnabled" type="checkbox" checked /><span data-i18n="nodeEnabled">启用节点</span></label>
+                <p class="hint" data-i18n="nodeHint">伪集群模式下，多个 FlowProxy 实例共享同一套数据文件，并通过不同 `NODE_ID` 只加载各自站点。</p>
+              </div>
+              <div class="error" id="nodeErrorBox"></div>
+              <div class="success" id="nodeSuccessBox"></div>
+              <div class="actions">
+                <button type="submit" class="btn-primary" id="nodeSubmitBtn" data-i18n="nodeSave">保存节点</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h2 data-i18n="nodeList">节点列表</h2>
+            </div>
+            <div class="section-body">
+              <div id="controlPlaneStatusCard" class="hint" style="margin-bottom:12px"></div>
+              <div id="clusterSyncStatusCard" class="hint" style="margin-bottom:12px"></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="thNodeId">ID</th>
+                      <th data-i18n="thNodeName">名称</th>
+                      <th data-i18n="thNodeStatus">状态</th>
+                      <th data-i18n="thNodeAssignedSites">已分配站点</th>
+                      <th data-i18n="thNodeLastHeartbeat">最近心跳</th>
+                      <th data-i18n="thActions">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="nodesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="labs">
+        <section class="panel">
+          <div class="section-head">
+            <h2 data-i18n="labsTitle">专项模块（预留）</h2>
+          </div>
+          <div class="module-grid">
+            <article class="module-card">
+              <strong data-i18n="labsA">证书自动化</strong>
+              <span data-i18n="labsADesc">统一管理域名证书申请、续签和分发状态。</span>
+            </article>
+            <article class="module-card">
+              <strong data-i18n="labsB">流量治理</strong>
+              <span data-i18n="labsBDesc">基于规则的熔断、重试、降级与限流配置中心。</span>
+            </article>
+            <article class="module-card">
+              <strong data-i18n="labsC">可观测性</strong>
+              <span data-i18n="labsCDesc">打通 tracing/metrics/logs，支持按站点定位问题。</span>
+            </article>
+            <article class="module-card">
+              <strong data-i18n="labsD">团队协作</strong>
+              <span data-i18n="labsDDesc">操作审计、角色权限和变更审批工作流。</span>
+            </article>
+          </div>
+        </section>
+      </section>
+    </section>

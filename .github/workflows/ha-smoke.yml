@@ -1,0 +1,54 @@
+name: HA Smoke (3-Node Etcd)
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep_running:
+        description: "Keep services running after test (0 or 1)"
+        required: false
+        default: "0"
+      local_ip:
+        description: "Node A IP"
+        required: false
+        default: "192.0.2.1"
+      host_b:
+        description: "Node B SSH target"
+        required: false
+        default: "user@192.0.2.2"
+      host_c:
+        description: "Node C SSH target"
+        required: false
+        default: "user@192.0.2.3"
+
+jobs:
+  ha-smoke:
+    # This job must run on a runner that can access the target nodes
+    # and has passwordless SSH configured for host_b and host_c.
+    runs-on: self-hosted
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Preflight
+        run: |
+          set -euo pipefail
+          command -v docker
+          command -v ssh
+          command -v scp
+          command -v go
+
+      - name: Run HA smoke test
+        env:
+          KEEP_RUNNING: ${{ inputs.keep_running }}
+          LOCAL_IP: ${{ inputs.local_ip }}
+          HOST_B: ${{ inputs.host_b }}
+          HOST_C: ${{ inputs.host_c }}
+        run: |
+          set -euo pipefail
+          bash ./scripts/ha_etcd_3node_smoke.sh

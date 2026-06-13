@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Project config
+*.md
+*.yaml
+*.yml
+*.example.*
+
+# Data directory (runtime mounts)
+data/
+
+# Scripts
+scripts/
+start.sh
+
+# CI
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifact
+flowproxy/

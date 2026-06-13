@@ -1,0 +1,12 @@
+bin/
+dist/
+data/
+/flowproxy
+*.log
+*.out
+*.test
+coverage.out
+flowproxy.yaml
+.env
+.env.local
+.env.*.local
